@@ -12,6 +12,8 @@ type Client struct {
 	*http.Client
 }
 
+var DefaultClient = NewClient(gnet.DefaultConnPool)
+
 func NewClient(p *gnet.ConnPool) *Client {
 	redirector := func(req *http.Request, via []*http.Request) error {
 		return errors.New("gophers: not following redirect")
@@ -33,26 +35,23 @@ func (c *Client) DoDiscardBody(req *http.Request) (res *http.Response, bodySize 
 		return
 	}
 
-	if res.Body != nil {
-		defer res.Body.Close()
+	defer res.Body.Close()
+	if res.ContentLength != 0 {
+		size := res.ContentLength
+		if size < 0 || size > g.MB {
+			size = g.MB
+		}
+		buf := make([]byte, size)
 
-		if res.ContentLength != 0 {
-			size := res.ContentLength
-			if size < 0 || size > g.MB {
-				size = g.MB
-			}
-			buf := make([]byte, size)
+		var n int
+		for err == nil {
+			n, err = res.Body.Read(buf)
+			bodySize += int64(n)
+		}
 
-			var n int
-			for err == nil {
-				n, err = res.Body.Read(buf)
-				bodySize += int64(n)
-			}
-
-			if err == io.EOF {
-				if res.ContentLength > 0 && res.ContentLength == bodySize {
-					err = nil
-				}
+		if err == io.EOF {
+			if res.ContentLength < 0 || res.ContentLength == bodySize {
+				err = nil
 			}
 		}
 	}
