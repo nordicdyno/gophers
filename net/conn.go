@@ -60,9 +60,13 @@ func (c *Conn) Close() error {
 	return c.Conn.Close()
 }
 
+func (c *Conn) Closed() bool {
+	return atomic.LoadInt32(&c.closed) == 1
+}
+
 func (c *Conn) String() string {
 	o := "open"
-	if atomic.LoadInt32(&c.closed) == 1 {
+	if c.Closed() {
 		o = "closed"
 	}
 	s := c.Stats()
