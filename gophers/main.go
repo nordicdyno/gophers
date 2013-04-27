@@ -19,11 +19,12 @@ var (
 )
 
 func main() {
+	log.SetFlags(0)
 	if os.Getenv("GOMAXPROCS") == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
+	log.Printf("GOMAXPROCS = %d", runtime.GOMAXPROCS(-1))
 	rand.Seed(time.Now().UnixNano())
-	log.SetFlags(0)
 
 	flag.Usage = func() {
 		log.Printf("Usage: gophers [flags] http[s]://hostname[:port]/path")
@@ -35,11 +36,6 @@ func main() {
 	u, err := url.Parse(flag.Arg(0))
 	if err != nil {
 		log.Fatalf("failed to parse URL %q: %s", flag.Arg(0), err)
-	}
-
-	req, err := ghttp.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		log.Fatalf("failed to create request for %s: %s", u, err)
 	}
 
 	ips, _ := gnet.DefaultDNSCache.ResolveAll(u.Host)
@@ -63,19 +59,33 @@ func main() {
 		}()
 	}
 
+	start := time.Now()
+	log.Printf("Making %d requests with concurrency %d ...", *nFlag, *cFlag)
+
 	go func() {
 		for i := 0; i < *nFlag; i++ {
+			req, err := ghttp.NewRequest("GET", u.String(), nil)
+			if err != nil {
+				log.Fatalf("failed to create request for %s: %s", u, err)
+			}
 			requests <- req
 		}
 	}()
 
+	lastLog := time.Now()
 	for i := 0; i < *nFlag; i++ {
 		res := <-responses
 		if res.StatusCode != 200 {
 			log.Fatalf("%s: %d", res.Request.URL, res.StatusCode)
 		}
+		if time.Now().Sub(lastLog) > 3*time.Second {
+			log.Printf("Made %d requests ...", i)
+			lastLog = time.Now()
+		}
 	}
 
+	stop := time.Now()
+	log.Printf("Made %d requests with concurrency %d in %f seconds.", *nFlag, *cFlag, stop.Sub(start).Seconds())
 	log.SetFlags(0)
 
 	var (
