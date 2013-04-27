@@ -79,19 +79,26 @@ func main() {
 	log.SetFlags(0)
 
 	var (
-		open, closed int
-		ctMin        time.Duration = time.Hour
-		ctMax, ctSum time.Duration
-		rsMax, rsSum float64
+		open, used, closed int
+		ctMin              time.Duration = time.Hour
+		ctMax, ctSum       time.Duration
+		rsMax, rsSum       float64
 	)
 	gnet.DefaultConnPool.Each(func(conn *gnet.Conn) {
+		s := conn.Stats()
+
+		if s.Established.IsZero() {
+			log.Fatalf("Conn %d was not established", conn.Id)
+		}
+
+		if s.Recv != 0 && s.Sent != 0 {
+			used++
+		}
 		if conn.Closed() {
 			closed++
 		} else {
 			open++
 		}
-
-		s := conn.Stats()
 
 		d := s.Established.Sub(s.Created)
 		if d < ctMin {
@@ -109,9 +116,8 @@ func main() {
 		rsSum += rs
 	})
 
-	conns := open + closed
-	log.Printf("Connections: %d open, %d closed", open, closed)
+	log.Printf("Connections: %d used, %d open, %d closed", used, open, closed)
 	log.Printf("Connect time: min %d msec, mean %d msec, max %d msec",
-		int(ctMin/time.Millisecond), int(ctSum/time.Millisecond)/conns, int(ctMax/time.Millisecond))
-	log.Printf("Receive speed: mean %d bytes/sec, max %d bytes/sec", int(rsSum)/conns, int(rsMax))
+		int(ctMin/time.Millisecond), int(ctSum/time.Millisecond)/(open+closed), int(ctMax/time.Millisecond))
+	log.Printf("Receive speed: mean %d bytes/sec, max %d bytes/sec", int(rsSum)/used, int(rsMax))
 }

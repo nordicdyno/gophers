@@ -15,9 +15,15 @@ type Stats struct {
 }
 
 func (s *Stats) SendSpeed() float64 {
-	return float64(s.Sent) / s.LastSend.Sub(s.FirstSend).Seconds()
+	if s.Sent == 0 {
+		return 0
+	}
+	return float64(s.Sent) / (float64(s.LastSend.Sub(s.FirstSend)) / float64(time.Second))
 }
 
 func (s *Stats) RecvSpeed() float64 {
-	return float64(s.Recv) / s.LastRecv.Sub(s.FirstRecv).Seconds()
+	if s.Recv == 0 {
+		return 0
+	}
+	return float64(s.Recv) / (float64(s.LastRecv.Sub(s.FirstRecv)) / float64(time.Second))
 }
