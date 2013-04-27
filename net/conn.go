@@ -26,29 +26,29 @@ func Dial(net, addr string) (net.Conn, error) {
 }
 
 func (c *Conn) Read(b []byte) (n int, err error) {
+	start := time.Now()
 	n, err = c.Conn.Read(b)
-	now := time.Now()
+	if n > 0 {
+		c.s.LastRecv = time.Now()
+	}
 	n64 := uint64(n)
 	res := atomic.AddUint64(&c.s.Recv, n64)
 	if res > 0 && res == n64 {
-		c.s.FirstRecv = now
-	}
-	if n64 > 0 {
-		c.s.LastRecv = now
+		c.s.FirstRecv = start
 	}
 	return
 }
 
 func (c *Conn) Write(b []byte) (n int, err error) {
+	start := time.Now()
 	n, err = c.Conn.Write(b)
-	now := time.Now()
+	if n > 0 {
+		c.s.LastSend = time.Now()
+	}
 	n64 := uint64(n)
 	res := atomic.AddUint64(&c.s.Sent, n64)
 	if res > 0 && res == n64 {
-		c.s.FirstSend = now
-	}
-	if n64 > 0 {
-		c.s.LastSend = now
+		c.s.FirstSend = start
 	}
 	return
 }

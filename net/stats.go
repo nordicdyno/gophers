@@ -9,8 +9,8 @@ import (
 // Connection statistics.
 type Stats struct {
 	Recv, Sent                   uint64    // bytes received and sent
-	FirstRecv, FirstSend         time.Time // time of first non-empty receive and send operation
-	LastRecv, LastSend           time.Time // time of last non-empty receive and send operation
+	FirstRecv, FirstSend         time.Time // start time of first non-empty receive and send operation
+	LastRecv, LastSend           time.Time // stop time of last non-empty receive and send operation
 	Created, Established, Closed time.Time // time of object creation, connection establishment and closing
 }
 
