@@ -37,7 +37,7 @@ func NewRequest(method, urlStr string, body io.Reader) (req *http.Request, err e
 		return
 	}
 
-	u.Host = net.JoinHostPort(ip, port)
+	u.Host = net.JoinHostPort(ip.String(), port)
 	req, err = http.NewRequest(method, u.String(), body)
 	if err != nil {
 		return
